@@ -6,20 +6,22 @@
 		_turnCounter : 1,
 		_board : [0, 0, 0, 0, 0, 0, 0, 0, 0],
 		_wins  : [123, 147, 159, 258, 357, 369, 456, 789],
+		_lastWho : null,
 
 		playTurn : function(rWho, rSpotIdx)
 		{
 			// rWho?
 			if (rWho !== 'X' || rWho !== 'Y') return false;
 
-			// Bad value, bad.
+			// Bad value, bad. Also, make sure rSpotIdx is whole.
+			rSpotIdx = parseInt(rSpotIdx, 2);
 			if (isNaN(rSpotIdx) || rSpotIdx < 0 || rSpotIdx > 8) return false;
 			
 			// Spot is taken
 			if (this._board[rSpotIdx]) return false;
 
 			// It's not rWho's turn
-			if ((this._turnCounter % 2 + 1) & this[rWho]) {
+			if (rWho === this._lastWho) {
 				console.log('not ' + rWho + ' turn');
 				return false;
 			}
