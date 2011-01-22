@@ -28,6 +28,7 @@
 
 			this._board[rSpotIdx] = this[rWho];
 			this._turnCounter++;
+			this._lastWho = rWho;
 
 			return this._isWinner(rWho);
 		},
