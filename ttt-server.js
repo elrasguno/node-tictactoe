@@ -1,7 +1,6 @@
 var sys = require("sys")
 , ws = require('../node-websocket-server/lib/ws/server');
 
-// TODO: add TTT here.
 var ttt = new (function () {
 	return {
 		X      : 1,
@@ -27,19 +26,45 @@ var ttt = new (function () {
 		{
 			console.log('_lastWho', this._lastWho);
 			// rWho?
-			if (rWho !== 'X' && rWho !== 'Y') return false;
+			if (rWho !== 'X' && rWho !== 'Y') 
+			{
+				throw {
+					"type"    : "error",
+					"success" : false,
+					"msg"     : "Invalid player (" + rWho + ")"
+				}
+			}
 
 			// Bad value, bad. Also, make sure rSpotIdx is whole.
 			rSpotIdx = parseInt(rSpotIdx) >> 0;
-			if (isNaN(rSpotIdx) || rSpotIdx < 0 || rSpotIdx > 8) return false;
+			if (isNaN(rSpotIdx) || rSpotIdx < 0 || rSpotIdx > 8) 
+			{
+				throw {
+					"type"    : "error",
+					"success" : false,
+					"msg"     : "Invalid slot (" + rSpotIdx + ")"
+				}
+			}
 			
 			// Spot is taken
-			if (this._board[rSpotIdx]) return false;
+			if (this._board[rSpotIdx])
+			{
+				console.log('test 001');
+				throw {
+					"type"    : "error",
+					"success" : false,
+					"msg"     : "Invalid slot (" + rSpotIdx + " already used.)"
+				}
+				console.log('test 002');
+			}
 
 			// It's not rWho's turn
 			if (rWho === this._lastWho) {
-				console.log('not ' + rWho + ' turn');
-				return false;
+				throw {
+					"type"    : "error",
+					"success" : false,
+					"msg"     : "It's not " + rWho + "'s turn."
+				}
 			}
 
 			this._board[rSpotIdx] = this[rWho];
@@ -70,10 +95,6 @@ var ttt = new (function () {
 			
 			for (i=0, l=this._wins.length; i < l; i++)
 			{
-				// Easy peasy
-				if (this._wins[i] == vMoves) return true;
-				
-				// Less easy
 				vSplit = this._wins[i].toString().split('');
 				if (vMoves.indexOf(vSplit[0]) !== -1 &&
 					vMoves.indexOf(vSplit[1]) !== -1 &&		
@@ -91,13 +112,24 @@ var server = ws.createServer({debug: true});
 
 // Handle WebSocket Requests
 server.addListener("connection", function(conn){
+	var vResponse;
 	ttt.addPlayer(conn.id);
 
-	conn.send("Player " + ttt.getPlayers().length + " has joined the table.");
+	vResponse = {
+		success : true,
+		type    : "connection",
+		msg     : "Player " + ttt.getPlayers().length + " has joined the table.",
+		data    : { 
+					"player_id"     : conn.id,
+					"player_letter" : ttt.getPlayers().length === 1 ? 'X' : 'Y'
+				  }
+	}
+	conn.send(JSON.stringify(vResponse));
 
 	conn.addListener("message", function(message){
 		var cmdObj = null,
-			result    = null;
+			result = null,
+			vResponse;
 		
 		try {
 			cmdObj = JSON.parse(message);
@@ -115,11 +147,25 @@ server.addListener("connection", function(conn){
 		}
 
 		// Pass commands to ttt object if valid
-		result = ttt[cmdObj.cmd].apply(ttt, [].concat(cmdObj.args));
+		try {
+			result = ttt[cmdObj.cmd].apply(ttt, [].concat(cmdObj.args));
+		} catch (e) {
+			conn.send(JSON.stringify(e));
+		}
+
+		vResponse = {
+			success : true,
+			type    : cmdObj.cmd,
+			data    : {
+						"result" : result,
+						"board"  : ttt._board
+					  }
+		}
+		conn.send(JSON.stringify(vResponse));
 
 		// Send goes back to message sender, broadcast goes to everyone else.
 		conn.broadcast("<"+conn.id+"> "+ cmdObj.cmd + ' B001(' + result + ')');
-		conn.send     ("<"+conn.id+"> "+ cmdObj.cmd + ' S001(' + result + ')');
+		//conn.send     ("<"+conn.id+"> "+ cmdObj.cmd + ' S001(' + result + ')');
 
 		if(message == "error"){
 			conn.emit("error", "test");

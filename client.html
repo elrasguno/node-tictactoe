@@ -4,31 +4,66 @@
     <title>node-websocket-server test</title>
 		<style type="text/css">
 #rockbar {
-	position: fixed;
+	position: relative;
 	top: 0;
 	left: 20px;
 	background: #fff;
 	padding: 0.5em;
-	display: block;
+	display: none;
 }
 
 #warning {
 	padding: 1em;
 	border: 2px solid red;
 }
+
+#log {
+	float: right;
+	width: 23%;
+	border: 1px solid #ccc;
+}
+
+#ttt_container {
+	width : 50%;
+	margin : 0 auto;
+}
+#ttt_container > ul {
+	list-style-type: none;
+	width: 100%;
+}
+#ttt_container > ul > li {
+	width : 31%;
+	line-height: 3em;
+	text-align: center;
+	font-size: 3em;
+	display: inline-block;
+	border: 2px solid #069;
+	margin-top: 5px;
+}
 		</style>
 	<script type="text/javascript" src="../JSON-js/json2.js"></script>
 	<script type="text/javascript" src="http://bit.ly/jqsource"></script>
   </head>
   <body>
-		<p id="warning">
-			<strong>WARNING:</strong> run the Spam Test at your own risk, see below for more information.<br /><br />
-Spam Test: The spam test rapidly spends 1 million messages to the websocket-server at a near instant interval, as such, any browsers connected to the server at the time of a spam test may crash or freeze up. The websocket server should not crash, but this is not 100% guaranteed.<br/><br />
-The author does not take responsibility for any damage or data loss caused.</p>
 	  <div id="rockbar">
 			<a href="#" id="send">Send Something</a> | <a href="#" id="spam">Run Spam Test</a> | <a href="#" id="close">Close Connection.</a> | <a href="#" id="open">Open Connection.</a>
 		</div>
+
 		<div id="log"></div>
+		<div id="ttt_container">
+			<ul>
+				<li id="space_0">&nbsp;</li>
+				<li id="space_1">&nbsp;</li>
+				<li id="space_2">&nbsp;</li>
+				<li id="space_3">&nbsp;</li>
+				<li id="space_4">&nbsp;</li>
+				<li id="space_5">&nbsp;</li>
+				<li id="space_6">&nbsp;</li>
+				<li id="space_7">&nbsp;</li>
+				<li id="space_8">&nbsp;</li>
+			</ul>
+
+		</div>
     <script type="text/javascript">
 var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -69,16 +104,22 @@ var connect = function() {
     host = "localhost:8000";
     conn = new WebSocket("ws://"+host+"/test");
     conn.onmessage = function(evt) {
-      log(evt.data);
+		var vResponse;
+		try {
+			vResponse = JSON.parse(evt.data);	
+		} catch (e) {
+			log(evt.data);
+			return;
+		}
 
-      // conn.close();
-      // log(connections++);
-      // connect();
-
-      // if(recvd == 0){
-      //   conn.id = parseInt(evt.data.match(/\: ([0-9]+)/)[1], 10);
-      // }
-      // recvd++;
+		// Parse evt.data and route to appropriate function.
+		if (tttcli[vResponse.type]) 
+		{	
+			tttcli[vResponse.type](vResponse);	
+		} else {
+			console.log('whoops', vResponse);
+		}
+		vResponse.msg && log(vResponse.msg);
     };
     
     conn.onerror = function() {
@@ -95,49 +136,69 @@ var connect = function() {
   }
 };
 
-document.getElementById("send").addEventListener("click", function(e) {
-  if (conn) {
-    setTimeout(function() {
-      conn.send("test message");
-      log("<"+conn.id+"> "+"test message");
-    }, 0);
-  }
-  e.preventDefault();
-  return false;
-}, false);
+var tttcli = (function() {
+	return {
+		_player_id     : null,
+		_player_letter : null,
 
-document.getElementById("spam").addEventListener("click", function() {
-  if (conn) {
-    for (var i = 0; i < 100000; ++i) {
-      (function(n) {
-        setTimeout(function() {
-          conn.send("t" + n);
-          //log("<"+conn.id+"> "+"t "+n);
-        }, 0);
-      })(i);
-    }
-  }
-  return false;
-}, true);
+		getPlayerID     : function()  { return this._player_id;         },
+		setPlayerID     : function(v) { return this._player_id = v;     },
+		getPlayerLetter : function()  { return this._player_letter;     },
+		setPlayerLetter : function(v) { return this._player_letter = v; },
 
-document.getElementById("close").addEventListener("click", function(e) {
-  if (conn) {
-    conn.close();
-    conn = false;
-  }
-  e.preventDefault();
-  return false;
-}, false);
+		// Set values after successfull connection;
+		connection : function(rRespObj)
+		{
+			var vData = (rRespObj && rRespObj.data);
+			if (!vData) return false;
 
-document.getElementById("open").addEventListener("click", function(e) {
-  if (!conn) {
-    connect();
-  }
-  e.preventDefault();
-  return false;
-}, false);
+			console.log('tttcli.connection', rRespObj);
+			if (vData.player_id && vData.player_letter)
+			{
+				this.setPlayerID(vData.player_id);
+				this.setPlayerLetter(vData.player_letter);
+			}
+		},
 
-window.onload = connect;
+		// Called after successful run of playTurn
+		playTurn : function(rRespObj)
+		{
+			console.log('playTurn', rRespObj);
+			// Check result for true (win)
+			// Update board.
+		}
+	}
+})();
+
+$(document).ready(function() {
+	connect();
+	console.log('ttlcli', tttcli);
+	// Store player info returned from server.
+
+	$('#ttt_container').click(function(rEvt) {
+		var vSlotIdx, vPlayer, vCmdObj;
+		// Get slot # from rEvt.target.id
+		vSlotIdx = parseInt(rEvt.target.id.split('_')[1]);
+
+		// Get stored player number/letter
+		vPlayer  = tttcli.getPlayerLetter();
+
+		// Pass command
+		vCmdObj  = {
+			"cmd"  : "playTurn",
+			"args" : [vPlayer, vSlotIdx] 
+		};
+		console.log('click', vSlotIdx, vPlayer, vCmdObj);
+
+		conn.send(JSON.stringify(vCmdObj));
+
+		// Throw error on failure
+
+		// Update UI on success
+
+		// { "cmd" : "playTurn", "args" : ["X", 1]}
+	});
+});
 
     </script>
   </body>
