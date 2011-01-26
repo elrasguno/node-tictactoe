@@ -1,0 +1,2 @@
+node-tictactoe
+Contained herein is my first experiment with nodejs. My goal is write a game server that is responsible for managing multiple instances of a given game. For now, it's Tic Tac Toe, but it could be "Connect Four" or "Hangman" or Poker. The client code will be structured in such a way that the callback receiving messages from the websocket server will pass the server's response object on to an appropriately named function, or throw an error indicating that such a function needs to be implemented.
