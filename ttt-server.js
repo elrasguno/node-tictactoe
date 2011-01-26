@@ -30,6 +30,7 @@ var ttt = new (function () {
 			{
 				throw {
 					"type"    : "error",
+					"cb"      : "error",
 					"success" : false,
 					"msg"     : "Invalid player (" + rWho + ")"
 				}
@@ -41,6 +42,7 @@ var ttt = new (function () {
 			{
 				throw {
 					"type"    : "error",
+					"cb"      : "error",
 					"success" : false,
 					"msg"     : "Invalid slot (" + rSpotIdx + ")"
 				}
@@ -52,6 +54,7 @@ var ttt = new (function () {
 				console.log('test 001');
 				throw {
 					"type"    : "error",
+					"cb"      : "error",
 					"success" : false,
 					"msg"     : "Invalid slot (" + rSpotIdx + " already used.)"
 				}
@@ -62,6 +65,7 @@ var ttt = new (function () {
 			if (rWho === this._lastWho) {
 				throw {
 					"type"    : "error",
+					"cb"      : "error",
 					"success" : false,
 					"msg"     : "It's not " + rWho + "'s turn."
 				}
@@ -72,6 +76,12 @@ var ttt = new (function () {
 			this._lastWho = rWho;
 
 			return this._isWinner(rWho);
+		},
+
+		reset : function()
+		{
+			this._board = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+			return true;
 		},
 
 		_getMoves : function(rWho)
@@ -99,7 +109,7 @@ var ttt = new (function () {
 				if (vMoves.indexOf(vSplit[0]) !== -1 &&
 					vMoves.indexOf(vSplit[1]) !== -1 &&		
 					vMoves.indexOf(vSplit[2]) !== -1) {
-					return true;
+					return this._wins[i];
 				}		
 			}
 				
@@ -108,17 +118,29 @@ var ttt = new (function () {
 	}
 })();
 
+if (!String.prototype.toProperCase)
+{
+	String.prototype.toProperCase = function(){
+		return this.replace(
+			/^(.)|\s(.)/g,
+		function($1) { return $1.toUpperCase(); }
+		);
+	}
+}
+
 var server = ws.createServer({debug: true});
 
 // Handle WebSocket Requests
 server.addListener("connection", function(conn){
-	var vResponse;
+	var vCmdName = 'connection',
+		vResponse;
 	ttt.addPlayer(conn.id);
 
 	vResponse = {
 		success : true,
 		type    : "connection",
 		msg     : "Player " + ttt.getPlayers().length + " has joined the table.",
+		cb      : 'on' + vCmdName.toProperCase(),
 		data    : { 
 					"player_id"     : conn.id,
 					"player_letter" : ttt.getPlayers().length === 1 ? 'X' : 'Y'
@@ -129,6 +151,7 @@ server.addListener("connection", function(conn){
 	conn.addListener("message", function(message){
 		var cmdObj = null,
 			result = null,
+			vCmdName,
 			vResponse;
 		
 		try {
@@ -146,9 +169,11 @@ server.addListener("connection", function(conn){
 			return false;
 		}
 
+		vCmdName = cmdObj.cmd;
+
 		// Pass commands to ttt object if valid
 		try {
-			result = ttt[cmdObj.cmd].apply(ttt, [].concat(cmdObj.args));
+			result = ttt[cmdObj.cmd].apply(ttt, [].concat((cmdObj.args || [])));
 		} catch (e) {
 			conn.send(JSON.stringify(e));
 			return;
@@ -157,15 +182,21 @@ server.addListener("connection", function(conn){
 		vResponse = {
 			success : true,
 			type    : cmdObj.cmd,
+			cb      : cmdObj.cb || 'on' + vCmdName.toProperCase(),
 			data    : {
 						"result" : result,
 						"board"  : ttt._board,
-						"player" : cmdObj.args[0]
+						"player" : cmdObj.args && cmdObj.args[0]
 					  }
 		}
 
 		// Send goes back to message sender, broadcast goes to everyone else.
 		conn.send     (JSON.stringify(vResponse));
+
+		/***
+		 * This needs to be updated to only send to the other player of the game,
+		 * not every player on the server.
+		 **/
 		conn.broadcast(JSON.stringify(vResponse));
 
 		if(message == "error"){

@@ -4,27 +4,38 @@
     <title>node-websocket-server test</title>
 		<style type="text/css">
 #log {
-	float: right;
-	width: 23%;
-	border: 1px solid #ccc;
+	position: fixed;
+	bottom: 5px;
+	left: 5px;
+	width: 98%;
+	height: 100px;
+	border: 1px dashed #aaa;
+	overflow: auto;
 }
 
 #ttt_container {
-	width : 50%;
+	width : 75%;
 	margin : 0 auto;
 }
 #ttt_container > ul {
 	list-style-type: none;
-	width: 100%;
+	width: 400px;
 }
 #ttt_container > ul > li {
 	width : 31%;
-	line-height: 3em;
+	line-height: 3.5em;
 	text-align: center;
-	font-size: 3em;
+	font-size: 1.5em;
 	display: inline-block;
 	border: 2px solid #069;
 	margin-top: 5px;
+}
+
+#reset_button {
+	width: 400px;
+	margin: 0 auto;
+	padding: 5px;
+	border: 1px solid #960;
 }
 		</style>
 	<script type="text/javascript" src="./json2.js"></script>
@@ -32,7 +43,6 @@
 	<script type="text/javascript" src="./ttt-client.js"></script>
   </head>
   <body>
-		<div id="log"></div>
 		<div id="ttt_container">
 			<ul>
 				<li id="space_0">&nbsp;</li>
@@ -47,6 +57,8 @@
 			</ul>
 
 		</div>
+		<div id="reset_button">Reset</div>
+		<div id="log"></div>
     <script type="text/javascript">
 var output_log = document.getElementById("log");
 var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

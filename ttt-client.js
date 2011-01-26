@@ -16,11 +16,11 @@ var connect = function() {
 		}
 
 		// Parse evt.data and route to appropriate function.
-		if (tttcli[vResponse.type]) 
+		if (tttcli[vResponse.cb]) 
 		{	
-			tttcli[vResponse.type](vResponse);	
+			tttcli[vResponse.cb](vResponse);	
 		} else {
-			console.log('whoops', vResponse);
+			console.log('Warning', 'The function ' + vResponse.cb + ' has not been implemented.', vResponse);
 		}
 		vResponse.msg && log(vResponse.msg);
     };
@@ -50,12 +50,12 @@ var tttcli = (function() {
 		setPlayerLetter : function(v) { return this._player_letter = v; },
 
 		// Set values after successfull connection;
-		connection : function(rRespObj)
+		onConnection : function(rRespObj)
 		{
 			var vData = (rRespObj && rRespObj.data);
 			if (!vData) return false;
 
-			console.log('tttcli.connection', rRespObj);
+			console.log('tttcli.onConnection', rRespObj);
 			if (vData.player_id && vData.player_letter)
 			{
 				this.setPlayerID(vData.player_id);
@@ -64,14 +64,14 @@ var tttcli = (function() {
 		},
 
 		// Called after successful run of playTurn
-		playTurn : function(rRespObj)
+		onPlayTurn : function(rRespObj)
 		{
 			var vData  = rRespObj.data, 
 				vBoard = vData && vData.board;
-			console.log('playTurn', rRespObj);
+			console.log('onPlayTurn', rRespObj);
 
 			// Check result for true (win)
-			if (vData.result === true)
+			if (vData.result)
 			{
 				console.log('WINNER', vData.player);
 			}
@@ -85,7 +85,20 @@ var tttcli = (function() {
 			$.each(vBoard, function(k, v) {
 				$('#space_' + k).html(( v === 1 ? 'X' :
 										v === 2 ? 'Y' : '&nbsp;'));
+
+				// Highlight space letter if there's a winner.
+				if (vData.result &&
+				 	vData.result.toString().indexOf(k+1) !== -1) {
+					$('#space_' + k).css('color', '#090');
+				}
 			});
+		},
+
+		// Clear the board
+		onReset : function()
+		{
+			console.log('tttcli.onReset');
+			$('#ttt_container > ul > li').html('&nbsp;').css('color', '#000');
 		}
 	}
 })();
@@ -100,22 +113,29 @@ $(document).ready(function() {
 		// Get slot # from rEvt.target.id
 		vSlotIdx = parseInt(rEvt.target.id.split('_')[1]);
 
+		// Stop if something other than a slot in the container was clicked.
+		if(isNaN(vSlotIdx)) return false;
+
 		// Get stored player number/letter
 		vPlayer  = tttcli.getPlayerLetter();
 
 		// Pass command
 		vCmdObj  = {
 			"cmd"  : "playTurn",
-			"args" : [vPlayer, vSlotIdx] 
+			"args" : [vPlayer, vSlotIdx],
+			"cb"   : "onPlayTurn"
 		};
 		console.log('click', vSlotIdx, vPlayer, vCmdObj);
 
 		conn.send(JSON.stringify(vCmdObj));
+	});
 
-		// Throw error on failure
-
-		// Update UI on success
-
-		// { "cmd" : "playTurn", "args" : ["X", 1]}
+	$('#reset_button').click(function(rEvt) {
+		// Pass command
+		vCmdObj  = {
+			"cmd"  : "reset",
+			"cb"   : "onReset"
+		};
+		conn.send(JSON.stringify(vCmdObj));
 	});
 });
