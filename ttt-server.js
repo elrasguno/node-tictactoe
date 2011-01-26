@@ -151,6 +151,7 @@ server.addListener("connection", function(conn){
 			result = ttt[cmdObj.cmd].apply(ttt, [].concat(cmdObj.args));
 		} catch (e) {
 			conn.send(JSON.stringify(e));
+			return;
 		}
 
 		vResponse = {
@@ -158,14 +159,14 @@ server.addListener("connection", function(conn){
 			type    : cmdObj.cmd,
 			data    : {
 						"result" : result,
-						"board"  : ttt._board
+						"board"  : ttt._board,
+						"player" : cmdObj.args[0]
 					  }
 		}
-		conn.send(JSON.stringify(vResponse));
 
 		// Send goes back to message sender, broadcast goes to everyone else.
-		conn.broadcast("<"+conn.id+"> "+ cmdObj.cmd + ' B001(' + result + ')');
-		//conn.send     ("<"+conn.id+"> "+ cmdObj.cmd + ' S001(' + result + ')');
+		conn.send     (JSON.stringify(vResponse));
+		conn.broadcast(JSON.stringify(vResponse));
 
 		if(message == "error"){
 			conn.emit("error", "test");

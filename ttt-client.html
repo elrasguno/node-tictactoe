@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+  <head>
+    <title>node-websocket-server test</title>
+		<style type="text/css">
+#log {
+	float: right;
+	width: 23%;
+	border: 1px solid #ccc;
+}
+
+#ttt_container {
+	width : 50%;
+	margin : 0 auto;
+}
+#ttt_container > ul {
+	list-style-type: none;
+	width: 100%;
+}
+#ttt_container > ul > li {
+	width : 31%;
+	line-height: 3em;
+	text-align: center;
+	font-size: 3em;
+	display: inline-block;
+	border: 2px solid #069;
+	margin-top: 5px;
+}
+		</style>
+	<script type="text/javascript" src="../JSON-js/json2.js"></script>
+	<script type="text/javascript" src="http://bit.ly/jqsource"></script>
+	<script type="text/javascript" src="./ttt-client.js"></script>
+  </head>
+  <body>
+		<div id="log"></div>
+		<div id="ttt_container">
+			<ul>
+				<li id="space_0">&nbsp;</li>
+				<li id="space_1">&nbsp;</li>
+				<li id="space_2">&nbsp;</li>
+				<li id="space_3">&nbsp;</li>
+				<li id="space_4">&nbsp;</li>
+				<li id="space_5">&nbsp;</li>
+				<li id="space_6">&nbsp;</li>
+				<li id="space_7">&nbsp;</li>
+				<li id="space_8">&nbsp;</li>
+			</ul>
+
+		</div>
+    <script type="text/javascript">
+var output_log = document.getElementById("log");
+var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function pad(n) {
+  return n < 10 ? '0' + n.toString(10) : n.toString(10);
+}
+
+function timestamp() {
+  var d = new Date();
+  return [
+    d.getDate(),
+    months[d.getMonth()],
+    [ pad(d.getHours())
+    , pad(d.getMinutes())
+    , pad(d.getSeconds())
+    , (d.getTime() + "").substr( - 4, 4)
+    ].join(':')
+  ].join(' ');
+};
+
+
+function scrollToBottom() {
+    window.scrollBy(0, document.body.scrollHeight - document.body.scrollTop);
+};
+
+function log(data){
+  output_log.innerHTML += timestamp()+": "+data+"<br />";
+  scrollToBottom();
+}
+    </script>
+  </body>
+</html>

@@ -1,102 +1,4 @@
-<!doctype html>
-<html>
-  <head>
-    <title>node-websocket-server test</title>
-		<style type="text/css">
-#rockbar {
-	position: relative;
-	top: 0;
-	left: 20px;
-	background: #fff;
-	padding: 0.5em;
-	display: none;
-}
-
-#warning {
-	padding: 1em;
-	border: 2px solid red;
-}
-
-#log {
-	float: right;
-	width: 23%;
-	border: 1px solid #ccc;
-}
-
-#ttt_container {
-	width : 50%;
-	margin : 0 auto;
-}
-#ttt_container > ul {
-	list-style-type: none;
-	width: 100%;
-}
-#ttt_container > ul > li {
-	width : 31%;
-	line-height: 3em;
-	text-align: center;
-	font-size: 3em;
-	display: inline-block;
-	border: 2px solid #069;
-	margin-top: 5px;
-}
-		</style>
-	<script type="text/javascript" src="../JSON-js/json2.js"></script>
-	<script type="text/javascript" src="http://bit.ly/jqsource"></script>
-  </head>
-  <body>
-	  <div id="rockbar">
-			<a href="#" id="send">Send Something</a> | <a href="#" id="spam">Run Spam Test</a> | <a href="#" id="close">Close Connection.</a> | <a href="#" id="open">Open Connection.</a>
-		</div>
-
-		<div id="log"></div>
-		<div id="ttt_container">
-			<ul>
-				<li id="space_0">&nbsp;</li>
-				<li id="space_1">&nbsp;</li>
-				<li id="space_2">&nbsp;</li>
-				<li id="space_3">&nbsp;</li>
-				<li id="space_4">&nbsp;</li>
-				<li id="space_5">&nbsp;</li>
-				<li id="space_6">&nbsp;</li>
-				<li id="space_7">&nbsp;</li>
-				<li id="space_8">&nbsp;</li>
-			</ul>
-
-		</div>
-    <script type="text/javascript">
-var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-function pad(n) {
-  return n < 10 ? '0' + n.toString(10) : n.toString(10);
-}
-
-function timestamp() {
-  var d = new Date();
-  return [
-    d.getDate(),
-    months[d.getMonth()],
-    [ pad(d.getHours())
-    , pad(d.getMinutes())
-    , pad(d.getSeconds())
-    , (d.getTime() + "").substr( - 4, 4)
-    ].join(':')
-  ].join(' ');
-};
-
-
-function scrollToBottom() {
-    window.scrollBy(0, document.body.scrollHeight - document.body.scrollTop);
-};
-
-function log(data){
-  output_log.innerHTML += timestamp()+": "+data+"<br />";
-  scrollToBottom();
-}
-
-
 var conn, recvd, connections = 0;
-var output_log = document.getElementById("log");
 var connect = function() {
   if (window["WebSocket"]) {
     recvd = 0;
@@ -105,6 +7,7 @@ var connect = function() {
     conn = new WebSocket("ws://"+host+"/test");
     conn.onmessage = function(evt) {
 		var vResponse;
+
 		try {
 			vResponse = JSON.parse(evt.data);	
 		} catch (e) {
@@ -163,9 +66,26 @@ var tttcli = (function() {
 		// Called after successful run of playTurn
 		playTurn : function(rRespObj)
 		{
+			var vData  = rRespObj.data, 
+				vBoard = vData && vData.board;
 			console.log('playTurn', rRespObj);
+
 			// Check result for true (win)
+			if (vData.result === true)
+			{
+				console.log('WINNER', vData.player);
+			}
+
+			if (!vBoard || (vBoard && !vBoard.length)) 
+			{
+				return false;
+			}
+
 			// Update board.
+			$.each(vBoard, function(k, v) {
+				$('#space_' + k).html(( v === 1 ? 'X' :
+										v === 2 ? 'Y' : '&nbsp;'));
+			});
 		}
 	}
 })();
@@ -199,7 +119,3 @@ $(document).ready(function() {
 		// { "cmd" : "playTurn", "args" : ["X", 1]}
 	});
 });
-
-    </script>
-  </body>
-</html>
