@@ -1,5 +1,5 @@
 var sys = require("sys")
-, ws = require('../node-websocket-server/lib/ws/server');
+, ws = require('./node-websocket-server/lib/ws/server');
 
 var ttt = new (function () {
 	return {
