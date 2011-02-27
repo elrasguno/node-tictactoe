@@ -1,0 +1,37 @@
+#log {
+	position: fixed;
+	bottom: 5px;
+	left: 5px;
+	width: 98%;
+	height: 100px;
+	border: 1px dashed #aaa;
+	overflow: auto;
+}
+
+#ttt_container {
+	width : 75%;
+	margin : 0 auto;
+	text-align: center;
+}
+#ttt_container > ul {
+	list-style-type: none;
+	width: 400px;
+	margin: 0 auto;
+	padding: 0;
+}
+#ttt_container > ul > li {
+	width : 31%;
+	line-height: 3.5em;
+	text-align: center;
+	font-size: 1.5em;
+	display: inline-block;
+	border: 2px solid #069;
+	margin-top: 5px;
+}
+
+#reset_button {
+	width: 400px;
+	margin: 10px auto;
+	padding: 5px;
+	border: 1px solid #960;
+}
