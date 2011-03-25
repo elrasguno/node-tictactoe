@@ -5,6 +5,12 @@ var connect = function() {
     //host = (document.location.host != "" ? document.location.host : "localhost:8000");
     host = "localhost:8000";
     conn = new WebSocket("ws://"+host+"/test");
+
+	/***
+	 * Code responsible for processing server messages
+	 * and routing them to the right game client methods.
+	 * Throws an error if game client method doesn't exist.
+	 **/
     conn.onmessage = function(evt) {
 		var vResponse;
 

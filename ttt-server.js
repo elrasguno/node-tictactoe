@@ -1,139 +1,15 @@
-var sys = require("sys")
-, ws = require('./node-websocket-server/lib/ws/server');
+var sys  = require("sys"), 
+	ws   = require('./node-websocket-server/lib/ws/server'),
+	game = require('./ttt.js');
 
-var ttt = new (function () {
-	return {
-		X      : 1,
-		Y      : 2,
-
-		_turnCounter : 1,
-		_players     : [],
-		_board       : [0, 0, 0, 0, 0, 0, 0, 0, 0],
-		_wins        : [123, 147, 159, 258, 357, 369, 456, 789],
-		_lastWho     : null,
-
-		addPlayer : function(rID)
-		{
-			this._players.push(rID);
-		},
-
-		getPlayers : function()
-		{
-			return this._players;
-		},
-
-		playTurn : function(rWho, rSpotIdx)
-		{
-			console.log('_lastWho', this._lastWho);
-			// rWho?
-			if (rWho !== 'X' && rWho !== 'Y') 
-			{
-				throw {
-					"type"    : "error",
-					"cb"      : "error",
-					"success" : false,
-					"msg"     : "Invalid player (" + rWho + ")"
-				}
-			}
-
-			// Bad value, bad. Also, make sure rSpotIdx is whole.
-			rSpotIdx = parseInt(rSpotIdx) >> 0;
-			if (isNaN(rSpotIdx) || rSpotIdx < 0 || rSpotIdx > 8) 
-			{
-				throw {
-					"type"    : "error",
-					"cb"      : "error",
-					"success" : false,
-					"msg"     : "Invalid slot (" + rSpotIdx + ")"
-				}
-			}
-			
-			// Spot is taken
-			if (this._board[rSpotIdx])
-			{
-				console.log('test 001');
-				throw {
-					"type"    : "error",
-					"cb"      : "error",
-					"success" : false,
-					"msg"     : "Invalid slot (" + rSpotIdx + " already used.)"
-				}
-				console.log('test 002');
-			}
-
-			// It's not rWho's turn
-			if (rWho === this._lastWho) {
-				throw {
-					"type"    : "error",
-					"cb"      : "error",
-					"success" : false,
-					"msg"     : "It's not " + rWho + "'s turn."
-				}
-			}
-
-			this._board[rSpotIdx] = this[rWho];
-			this._turnCounter++;
-			this._lastWho = rWho;
-
-			return this._isWinner(rWho);
-		},
-
-		reset : function()
-		{
-			this._board = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-			return true;
-		},
-
-		_getMoves : function(rWho)
-		{
-			console.log('getMoves', rWho, Array.prototype.join.call(this._board, ', '));
-			var res = '', i;
-			for (i=0, l=this._board.length; i < l; i++)
-			{
-				if (this._board[i] === this[rWho]) { 
-					res += (parseInt(i)+1); 
-				}
-			}
-			return res;
-		},
-
-		_isWinner : function(rWho)
-		{
-			var vMoves = this._getMoves(rWho),
-				vSplit, i;
-			if (!vMoves) return false;
-			
-			for (i=0, l=this._wins.length; i < l; i++)
-			{
-				vSplit = this._wins[i].toString().split('');
-				if (vMoves.indexOf(vSplit[0]) !== -1 &&
-					vMoves.indexOf(vSplit[1]) !== -1 &&		
-					vMoves.indexOf(vSplit[2]) !== -1) {
-					return this._wins[i];
-				}		
-			}
-				
-			return false;
-		}
-	}
-})();
-
-if (!String.prototype.toProperCase)
-{
-	String.prototype.toProperCase = function(){
-		return this.replace(
-			/^(.)|\s(.)/g,
-		function($1) { return $1.toUpperCase(); }
-		);
-	}
-}
-
-var server = ws.createServer({debug: true});
+var server = ws.createServer({debug: true}),
+	ttt    = game.create();
 
 // Handle WebSocket Requests
 server.addListener("connection", function(conn){
 	var vCmdName = 'connection',
 		vResponse;
+
 	ttt.addPlayer(conn.id);
 
 	vResponse = {
@@ -146,12 +22,19 @@ server.addListener("connection", function(conn){
 					"player_letter" : ttt.getPlayers().length === 1 ? 'X' : 'Y'
 				  }
 	}
+
 	conn.send(JSON.stringify(vResponse));
 
+	/***
+	 * The following is responsible for routing all
+	 * calls to the server. If the "game" object has
+	 * a method matching the message.cmd property,
+	 * it will be called. Otherwise, an error will be 
+	 * thrown.
+	 **/
 	conn.addListener("message", function(message){
 		var cmdObj = null,
 			result = null,
-			vCmdName,
 			vResponse;
 		
 		try {
@@ -169,8 +52,6 @@ server.addListener("connection", function(conn){
 			return false;
 		}
 
-		vCmdName = cmdObj.cmd;
-
 		// Pass commands to ttt object if valid
 		try {
 			result = ttt[cmdObj.cmd].apply(ttt, [].concat((cmdObj.args || [])));
@@ -179,10 +60,15 @@ server.addListener("connection", function(conn){
 			return;
 		}
 
+		/***
+		 * Object to be returned to game client.
+		 * @param {string} type game server command that was just called.
+		 * @param {string} cb   game client command that's about to be called.
+		 **/
 		vResponse = {
 			success : true,
 			type    : cmdObj.cmd,
-			cb      : cmdObj.cb || 'on' + vCmdName.toProperCase(),
+			cb      : cmdObj.cb || 'on' + cmdObj.cmd.toProperCase(),
 			data    : {
 						"result" : result,
 						"board"  : ttt._board,
@@ -214,3 +100,14 @@ server.addListener("disconnected", function(conn){
 });
 
 server.listen(8000);
+
+// Utility function to convert "this" to "This".
+if (!String.prototype.toProperCase)
+{
+	String.prototype.toProperCase = function(){
+		return this.replace(
+			/^(.)|\s(.)/g,
+			function($1) { return $1.toUpperCase(); }
+		);
+	}
+}
